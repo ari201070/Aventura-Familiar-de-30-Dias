@@ -1,9 +1,8 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { City } from '../types';
-import { useAppContext } from '../App';
-import { DEFAULT_CITY_IMAGE } from '../constants';
+import { City } from '../types.ts';
+import { useAppContext } from '../App.tsx';
+import { DEFAULT_CITY_IMAGE } from '../constants.ts';
 
 interface CityCardProps {
   city: City;
@@ -23,6 +22,7 @@ const CityCard: React.FC<CityCardProps> = ({ city }) => {
         src={city.image} 
         alt={t(city.nameKey)} 
         onError={handleImageError}
+        loading="lazy"
       />
       <div className="p-6">
         <h3 className="text-2xl font-semibold text-indigo-700 mb-2">{t(city.nameKey)}</h3>

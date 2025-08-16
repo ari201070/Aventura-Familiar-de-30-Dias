@@ -1,7 +1,6 @@
-
 import React, { useEffect, useRef } from 'react';
-import { City, PointOfInterest } from '../types';
-import { useAppContext } from '../App';
+import { City, PointOfInterest } from '../types.ts';
+import { useAppContext } from '../App.tsx';
 
 declare var L: any; // Declare L from Leaflet CDN
 
@@ -28,8 +27,10 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({ cities, selectedCityCoo
         initialCoords = selectedCityCoords;
         initialZoom = zoomLevel || (pointsOfInterest && pointsOfInterest.length > 0 ? 13 : 8);
       } else if (cities.length > 0) {
-        initialCoords = cities[0].coords;
-        initialZoom = zoomLevel || 8;
+        // Calculate the center of all cities for the homepage view
+        const avgLat = cities.reduce((sum, city) => sum + city.coords[0], 0) / cities.length;
+        const avgLng = cities.reduce((sum, city) => sum + city.coords[1], 0) / cities.length;
+        initialCoords = [avgLat, avgLng];
       }
       
       mapInstanceRef.current = L.map(mapRef.current).setView(initialCoords, initialZoom);

@@ -1,12 +1,12 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
-import { useAppContext } from '../App';
-import { CITIES, DEFAULT_CITY_IMAGE, AI_PROMPT_CONFIGS, LANGUAGES } from '../constants';
-import InteractiveMap from '../components/InteractiveMap';
-import { City, AIPromptContent, AIResponseType, Language } from '../types';
-import { parseMarkdownLinks, parseMarkdownTable } from '../utils/markdownParser';
-import { askGemini } from '../services/apiService';
+import { useAppContext } from '../App.tsx';
+import { CITIES, DEFAULT_CITY_IMAGE, AI_PROMPT_CONFIGS, LANGUAGES } from '../constants.ts';
+import InteractiveMap from '../components/InteractiveMap.tsx';
+import BudgetTable from '../components/BudgetTable.tsx';
+import { City, AIPromptContent, AIResponseType, Language } from '../types.ts';
+import { parseMarkdownLinks, parseMarkdownTable } from '../utils/markdownParser.ts';
+import { askGemini } from '../services/apiService.ts';
 
 const CityDetailPage: React.FC = () => {
   const { cityId } = useParams<{ cityId: string }>();
@@ -127,7 +127,6 @@ const CityDetailPage: React.FC = () => {
     }
     
     setAiLoadingStates(prev => ({ ...prev, [config.promptKeySuffix]: true }));
-    // Keep old text while loading new translation
     
     try {
       const translatedText = await askGemini(fullPrompt, language); // language is the current UI language
@@ -146,7 +145,6 @@ const CityDetailPage: React.FC = () => {
         [config.promptKeySuffix]: { 
             ...existingResponse, // Revert to showing old text or show specific error
             text: existingResponse.text + `\n\n(${t('iaError')} - Translation failed)`, // Append error to old text
-            // lang remains the old language, or we can decide to update it to current UI lang with error
         } 
       }));
     } finally {
@@ -208,7 +206,7 @@ const CityDetailPage: React.FC = () => {
     const title = t(`section_title_${titleKeySuffix}`);
     const linkText = t(`${city.id}_${textKeySuffix}`);
     const linkUrl = t(`${city.id}_${urlKeySuffix}`);
-    const mainTextContentKey = `${city.id}_${titleKeySuffix.toLowerCase()}`; // e.g. buenosaires_events_agenda_text or buenosaires_city_map
+    const mainTextContentKey = `${city.id}_${titleKeySuffix.toLowerCase()}_text`;
     const mainTextContent = t(mainTextContentKey);
     
     const isMainTextValid = mainTextContent && mainTextContent !== mainTextContentKey;
@@ -273,7 +271,15 @@ const CityDetailPage: React.FC = () => {
           {renderLinkSection('events_agenda', 'events_agenda_link_text', 'events_agenda_link_url', 'fa-calendar-check')}
           {renderSection('family_tips', `${city.id}_family_tips`, 'fa-users')}
           {renderSection('cultural_tips', `${city.id}_cultural_tips`, 'fa-landmark')}
-          {renderSection('budget_table', city.budgetKey, 'fa-wallet')}
+          
+          <section className={detailCardClasses}>
+             <h2 className={detailSectionTitleClasses}>
+                <i className={`fas fa-wallet mr-3 text-xl text-indigo-500`}></i>
+                {t('section_title_budget_table')}
+             </h2>
+             <BudgetTable cityId={city.id} defaultBudgetItems={city.budgetItems} />
+          </section>
+
           {renderLinkSection('city_map', 'map_link_text', 'map_link_url', 'fa-map')}
 
           {/* AI Generator Sections */}

@@ -1,7 +1,7 @@
 const CACHE_NAME = 'argentina-familia-cache-v2'; // Incremented version
 const urlsToCache = [
-  '/',
-  '/index.html',
+  './',
+  './index.html',
   // Tailwind CSS from CDN
   'https://cdn.tailwindcss.com',
   // FontAwesome from CDN
@@ -10,13 +10,13 @@ const urlsToCache = [
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js',
   // Icons for PWA (ensure these paths are correct relative to public folder)
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
+  './icons/icon-192x192.png',
+  './icons/icon-512x512.png',
   // Main JS bundle (Vite usually hashes this, so this specific path might need adjustment
   // or use workbox-vite-plugin for more robust caching)
-  // '/src/index.tsx', // This will be handled by the browser cache primarily due to type="module"
+  // './src/index.tsx', // This will be handled by the browser cache primarily due to type="module"
   // Potentially add main images if they are critical and local
-  // '/docs/imagenes/buenosaires/buenosaires.jpg',
+  // './docs/imagenes/buenosaires/buenosaires.jpg',
 ];
 
 self.addEventListener('install', event => {
@@ -78,7 +78,7 @@ self.addEventListener('fetch', event => {
     event.respondWith(
       fetch(event.request)
         .catch(() => caches.match(event.request))
-        .catch(() => caches.match('/index.html')) // Fallback to index.html if specific page not cached
+        .catch(() => caches.match('./index.html')) // Fallback to index.html if specific page not cached
     );
     return;
   }

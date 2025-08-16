@@ -1,4 +1,3 @@
-
 export enum Language {
   ES = 'es',
   HE = 'he',
@@ -18,6 +17,13 @@ export interface PointOfInterest {
   descriptionKey?: string;
 }
 
+export interface BudgetItem {
+  conceptKey: string; // e.g., 'budget_concept_accommodation'
+  value: string;      // e.g., '50-120' - The value is stored directly here
+  isPerDay: boolean;  // To help with calculations
+}
+
+
 export interface City {
   id: string;
   nameKey: string; // Translation key for the name
@@ -26,7 +32,7 @@ export interface City {
   descriptionKey: string;
   activitiesKey: string;
   accommodationKey: string;
-  budgetKey: string;
+  budgetItems: BudgetItem[]; // Replaces budgetKey
   pointsOfInterest?: PointOfInterest[]; // Optional array of POIs
 }
 

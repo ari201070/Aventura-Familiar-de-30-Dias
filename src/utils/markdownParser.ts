@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { Language } from '../types'; // Assuming types.ts is in the parent directory or accessible
+import { Language } from '../types.ts';
 
 // Parses simple Markdown links like [text](url)
 export const parseMarkdownLinks = (text: string): React.ReactNode[] => {
@@ -34,56 +33,29 @@ export const parseMarkdownLinks = (text: string): React.ReactNode[] => {
 // Parses simple Markdown pipe tables
 export const parseMarkdownTable = (
   markdownTable: string,
-  t: (key: string) => string, // Pass the translation function
+  t: (key: string) => string, 
   lang: Language
 ): React.ReactNode => {
   const lines = markdownTable.trim().split('\n');
-  if (lines.length < 2) return React.createElement('p', null, markdownTable); // Not a valid table or too short
+  if (lines.length < 2) return React.createElement('p', null, markdownTable); // Not a valid table
 
   const sanitizeCell = (cellText: string) => cellText.trim();
 
-  // Attempt to use translated headers if available, otherwise parse from Markdown
-  let headers: string[];
-  const headerKeys = ['table_header_restaurant', 'table_header_cafe', 'table_header_type', 'table_header_gluten_free', 'table_header_sugar_free'];
-  const translatedHeaders = headerKeys.map(key => t(key)).filter(translated => !headerKeys.includes(translated)); // Filter out keys if not translated
-
-
-  if (translatedHeaders.length >= 2) { // Heuristic: if at least two headers are translated, use them.
-      // This is a simplification. A more robust solution would map specific keys to specific columns.
-      // For now, we check if the markdown header line contains parts of these translated headers.
-      const markdownHeaderLine = lines[0].toLowerCase();
-      headers = translatedHeaders.filter(th => markdownHeaderLine.includes(th.split(' ')[0].toLowerCase()));
-      if(headers.length < 2) { // Fallback if translated headers don't seem to match
-        headers = lines[0].split('|').map(sanitizeCell).filter(Boolean);
-      }
-  } else {
-      headers = lines[0].split('|').map(sanitizeCell).filter(Boolean);
-  }
-
-
-  let headerSeparatorIndex = -1;
-  for (let i = 1; i < lines.length; i++) {
-    if (lines[i].includes('---')) {
-      headerSeparatorIndex = i;
-      break;
-    }
-  }
-
-  if (headerSeparatorIndex === -1) return React.createElement('p', null, markdownTable); // No header separator found
+  const headers = lines[0].split('|').map(sanitizeCell).filter(Boolean);
+  let headerSeparatorIndex = lines.findIndex(line => line.includes('---'));
+  if (headerSeparatorIndex === -1) return React.createElement('p', null, markdownTable); // No header separator
 
   const bodyRows = lines.slice(headerSeparatorIndex + 1)
     .map(line => line.split('|').map(sanitizeCell).filter(Boolean))
     .filter(row => row.length > 0);
-
-  const headerActualKeys = lines[0].split('|').map(h => h.trim().toLowerCase()).filter(Boolean);
   
-  const columnAlignments: string[] = headerActualKeys.map(hKey => {
-      if (hKey === t('table_header_gluten_free').toLowerCase() || hKey === t('table_header_sugar_free').toLowerCase() || hKey === 'sin gluten' || hKey === 'sin azúcar' || hKey === 'ללא גלוטן' || hKey === 'ללא סוכר') {
-          return lang === Language.HE ? 'text-right' : 'text-center'; 
+  const columnAlignments: string[] = headers.map(hKey => {
+      const lowerKey = hKey.toLowerCase();
+      if (['sin gluten', 'ללא גלוטן', 'sin azúcar', 'ללא סוכר', 'check', 'cross'].some(term => lowerKey.includes(term))) {
+          return 'text-center'; 
       }
       return lang === Language.HE ? 'text-right' : 'text-left';
   });
-
 
   return (
     React.createElement('div', { className: "overflow-x-auto my-4" },
@@ -103,8 +75,16 @@ export const parseMarkdownTable = (
           bodyRows.map((row, rowIndex) => (
             React.createElement('tr', { key: rowIndex, className: (rowIndex % 2 === 0 ? undefined : 'bg-gray-50') },
               row.map((cell, cellIndex) => {
-                // Attempt to parse links within cells
-                const cellContent = parseMarkdownLinks(cell);
+                let cellContent;
+                const cellLower = cell.toLowerCase();
+                if (cellLower.includes('check')) { // Using includes for flexibility
+                    cellContent = React.createElement('i', { className: 'fas fa-check-circle text-green-500 text-lg', 'aria-label': 'Yes' });
+                } else if (cellLower.includes('cross')) { // Using includes for flexibility
+                    cellContent = React.createElement('i', { className: 'fas fa-times-circle text-red-500 text-lg', 'aria-label': 'No' });
+                } else {
+                    cellContent = parseMarkdownLinks(cell);
+                }
+
                 return (
                   React.createElement('td', {
                     key: cellIndex,

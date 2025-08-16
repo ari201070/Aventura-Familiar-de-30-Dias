@@ -1,7 +1,6 @@
-
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
-import { PolygonRateResponse, Language } from '../types';
-import { POLYGON_API_KEY } from '../constants'; // GEMINI_API_KEY_REFERENCE from constants is not used for client init
+import { PolygonRateResponse, Language } from '../types.ts';
+import { POLYGON_API_KEY } from '../constants.ts';
 
 // --- Gemini AI Service ---
 let ai: GoogleGenAI | null = null;
@@ -16,8 +15,7 @@ if (process.env.API_KEY) {
 
 export const askGemini = async (userPrompt: string, currentLanguage: Language): Promise<string> => {
   if (!ai) {
-    // Check process.env.API_KEY specifically for the warning, as per guidelines.
-    const apiKeyMissingMessage = process.env.API_KEY ? "AI service initialized but failed." : "AI service is unavailable (API key from process.env.API_KEY is missing).";
+    const apiKeyMissingMessage = "AI service is unavailable (API key from process.env.API_KEY is missing).";
     return currentLanguage === Language.HE ? `שירות הבינה המלאכותית אינו זמין (חסר מפתח API ב-process.env.API_KEY).` : apiKeyMissingMessage;
   }
   try {
@@ -25,7 +23,7 @@ export const askGemini = async (userPrompt: string, currentLanguage: Language): 
     const fullPrompt = `${userPrompt}\n\n${languageInstruction}`;
     
     const response: GenerateContentResponse = await ai.models.generateContent({
-      model: "gemini-2.5-flash-preview-04-17",
+      model: "gemini-2.5-flash",
       contents: fullPrompt,
     });
     return response.text;

@@ -1,9 +1,8 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useAppContext } from '../App';
-import { Language, Currency } from '../types';
-import { LANGUAGES, CURRENCIES } from '../constants';
+import { useAppContext } from '../App.tsx';
+import { Language } from '../types.ts';
+import { LANGUAGES, CURRENCIES } from '../constants.ts';
 
 const TopBar: React.FC = () => {
   const { language, setLanguage, currency, setCurrency, t } = useAppContext();

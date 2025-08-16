@@ -1,12 +1,11 @@
-
 import React, { useState, useCallback, createContext, useContext, useEffect } from 'react';
-import { HashRouter, Routes, Route, Link } from 'react-router-dom';
-import { Language, Currency, AppContextType, TranslationSet } from './types';
-import { translations, LANGUAGES, CURRENCIES, CITIES } from './constants';
-import HomePage from './pages/HomePage';
-import CityDetailPage from './pages/CityDetailPage';
-import TopBar from './components/TopBar';
-import Footer from './components/Footer';
+import { HashRouter, Routes, Route } from 'react-router-dom';
+import { Language, Currency, AppContextType, TranslationSet } from './types.ts';
+import { translations } from './constants.ts';
+import HomePage from './pages/HomePage.tsx';
+import CityDetailPage from './pages/CityDetailPage.tsx';
+import TopBar from './components/TopBar.tsx';
+import Footer from './components/Footer.tsx';
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
