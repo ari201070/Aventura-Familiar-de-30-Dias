@@ -7,8 +7,10 @@ import CityDetailPage from './pages/CityDetailPage.tsx';
 import TopBar from './components/TopBar.tsx';
 import Footer from './components/Footer.tsx';
 
+// Aquí creamos el contexto que usaremos en toda la aplicación
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+// Este es un "hook" personalizado para acceder al contexto más fácilmente
 export const useAppContext = () => {
   const context = useContext(AppContext);
   if (!context) {
@@ -17,7 +19,7 @@ export const useAppContext = () => {
   return context;
 };
 
-// --- Scroll to Top Button Component ---
+// --- Componente para el botón de "Scroll to Top" ---
 const ScrollToTopButton: React.FC = () => {
   const { t } = useAppContext();
   const [isVisible, setIsVisible] = useState(false);
@@ -59,19 +61,20 @@ const ScrollToTopButton: React.FC = () => {
   );
 };
 
+// --- Componente principal de la aplicación ---
 const App: React.FC = () => {
   const [language, setLanguage] = useState<Language>(Language.ES);
   const [currency, setCurrency] = useState<Currency>(Currency.ARS);
 
   useEffect(() => {
-    // Set document direction based on language
+    // Establecer la dirección del documento basada en el idioma
     document.documentElement.dir = language === Language.HE ? 'rtl' : 'ltr';
     document.documentElement.lang = language;
   }, [language]);
 
   const t = useCallback((key: string, replacements?: Record<string, string>): string => {
     const langSet = translations[language] as TranslationSet;
-    let translatedString = langSet[key] || key; // Fallback to key if translation not found
+    let translatedString = langSet[key] || key;
     if (replacements) {
       Object.keys(replacements).forEach(placeholder => {
         translatedString = translatedString.replace(`{${placeholder}}`, replacements[placeholder]);
