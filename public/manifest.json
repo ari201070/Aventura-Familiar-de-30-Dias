@@ -1,7 +1,8 @@
+
 {
-  "name": "Aventura Familiar Argentina",
-  "short_name": "Viaje AR",
-  "description": "Itinerario interactivo para un viaje familiar de 30 días por Argentina.",
+  "name": "Argentina Family Adventure",
+  "short_name": "Adventure AR",
+  "description": "An interactive 30-day family itinerary for a trip through Argentina.",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#f0f9ff",

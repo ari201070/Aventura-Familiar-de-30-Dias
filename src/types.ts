@@ -90,9 +90,20 @@ export interface AIPromptContent {
   userInputPlaceholderKey: string; // Placeholder for the user input textarea
 }
 
+// Types for Grounding / Google Search Tool
+export interface WebChunk {
+  web: {
+    uri: string;
+    title: string;
+  };
+}
+
+export type GroundingChunk = WebChunk; // Can be extended if other chunk types are used
+
 export interface AIResponseType {
   text: string;
   lang: Language;
   originalBasePromptKey: string;
   originalUserInput: string;
+  sources?: GroundingChunk[];
 }

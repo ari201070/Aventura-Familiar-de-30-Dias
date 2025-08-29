@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAppContext } from '../App.tsx';
 import CityCard from '../components/CityCard.tsx';
@@ -28,17 +29,42 @@ const parseRange = (rangeStr: string): [number, number] => {
 
 const getDaysFromDurationString = (durationStr: string): number => {
   if (!durationStr) return 0;
-  const match = durationStr.match(/(\d+)\s*días?/);
-  return match ? parseInt(match[1], 10) : 0;
+  
+  let totalDays = 0;
+
+  // This regex finds all occurrences of a number followed by "día", "días", or "ימים"
+  const regex = /(\d+)\s*(días?|ימים)/g;
+  const matches = durationStr.matchAll(regex);
+  
+  for (const match of matches) {
+    totalDays += parseInt(match[1], 10);
+  }
+
+  // Handle Hebrew specific word for "two days" (יומיים), which doesn't have a digit.
+  if (durationStr.includes('יומיים')) {
+    totalDays += 2;
+  }
+  
+  return totalDays;
 };
 
+export interface BudgetDetails {
+  total: string;
+  breakdown: Record<string, string>;
+  isCalculating: boolean;
+}
 
 const HomePage: React.FC = () => {
   const { t, language, currency: globalCurrency } = useAppContext();
 
   // State and logic that needs to be shared or is at the page level
   const [transportRates, setTransportRates] = useState<Record<string, number | null>>({});
-  const [tripBudget, setTripBudget] = useState<string>(t('budget_summary_calculating'));
+  const [budgetDetails, setBudgetDetails] = useState<BudgetDetails>({
+    total: t('budget_summary_calculating'),
+    breakdown: {},
+    isCalculating: true,
+  });
+
 
   // --- Transport Price Conversion Logic ---
   const updateTransportRates = useCallback(async () => {
@@ -69,11 +95,14 @@ const HomePage: React.FC = () => {
   
   // --- Trip Budget Calculation Logic ---
   const calculateTripBudget = useCallback(async () => {
-    setTripBudget(t('budget_summary_calculating'));
+    setBudgetDetails({
+        total: t('budget_summary_calculating'),
+        breakdown: {},
+        isCalculating: true,
+    });
     
-    let totalMinUSD = 0;
-    let totalMaxUSD = 0;
-
+    const totalsByCategory: Record<string, { min: number, max: number }> = {};
+    const oneTimeCostsAdded = new Set<string>(); // To track one-time costs
     const savedBudgets = JSON.parse(localStorage.getItem('customBudgets') || '{}');
 
     for (const city of CITIES) {
@@ -82,24 +111,58 @@ const HomePage: React.FC = () => {
         const cityBudget = savedBudgets[city.id] || city.budgetItems;
 
         cityBudget.forEach((item: BudgetItem) => {
+            if (!totalsByCategory[item.conceptKey]) {
+                totalsByCategory[item.conceptKey] = { min: 0, max: 0 };
+            }
+            const [min, max] = parseRange(item.value);
+
             if (item.isPerDay) {
-                const [min, max] = parseRange(item.value);
-                totalMinUSD += min * days;
-                totalMaxUSD += max * days;
+                totalsByCategory[item.conceptKey].min += min * days;
+                totalsByCategory[item.conceptKey].max += max * days;
+            } else {
+                if (!oneTimeCostsAdded.has(item.conceptKey)) {
+                    totalsByCategory[item.conceptKey].min += min;
+                    totalsByCategory[item.conceptKey].max += max;
+                    oneTimeCostsAdded.add(item.conceptKey);
+                }
             }
         });
     }
+    
+    let totalMinUSD = 0;
+    let totalMaxUSD = 0;
+    Object.values(totalsByCategory).forEach(category => {
+        totalMinUSD += category.min;
+        totalMaxUSD += category.max;
+    });
 
     const rate = await getCachedExchangeRate('USD', globalCurrency);
 
     if (rate !== null) {
-        const finalMin = totalMinUSD * rate;
-        const finalMax = totalMaxUSD * rate;
-        const formattedMin = finalMin.toLocaleString(language === 'he' ? 'he-IL' : 'es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-        const formattedMax = finalMax.toLocaleString(language === 'he' ? 'he-IL' : 'es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-        setTripBudget(`${formattedMin} - ${formattedMax} ${globalCurrency}`);
+        const formattedBreakdown: Record<string, string> = {};
+        for (const conceptKey in totalsByCategory) {
+            const { min, max } = totalsByCategory[conceptKey];
+            const finalMin = min * rate;
+            const finalMax = max * rate;
+            formattedBreakdown[conceptKey] = `${finalMin.toLocaleString(language === 'he' ? 'he-IL' : 'es-AR', { maximumFractionDigits: 0 })} - ${finalMax.toLocaleString(language === 'he' ? 'he-IL' : 'es-AR', { maximumFractionDigits: 0 })}`;
+        }
+        
+        const finalTotalMin = totalMinUSD * rate;
+        const finalTotalMax = totalMaxUSD * rate;
+        const formattedTotal = `${globalCurrency} ${finalTotalMin.toLocaleString(language === 'he' ? 'he-IL' : 'es-AR', { maximumFractionDigits: 0 })} - ${finalTotalMax.toLocaleString(language === 'he' ? 'he-IL' : 'es-AR', { maximumFractionDigits: 0 })}`;
+        
+        setBudgetDetails({
+            total: formattedTotal,
+            breakdown: formattedBreakdown,
+            isCalculating: false,
+        });
+
     } else {
-        setTripBudget(t('error'));
+        setBudgetDetails({
+            total: t('error'),
+            breakdown: {},
+            isCalculating: false,
+        });
     }
 
   }, [t, globalCurrency, language]);
@@ -107,6 +170,7 @@ const HomePage: React.FC = () => {
   useEffect(() => {
     calculateTripBudget();
     const handleStorageChange = (event: StorageEvent | Event) => {
+      // Listen for custom event trigger as well
       if ((event as StorageEvent).key === 'customBudgets' || event.type === 'storage') {
         calculateTripBudget();
       }
@@ -133,7 +197,7 @@ const HomePage: React.FC = () => {
         </div>
       </section>
       
-      <BudgetSummary tripBudget={tripBudget} />
+      <BudgetSummary budgetDetails={budgetDetails} />
 
       {/* Interactive Map */}
       <section className={cardClasses}>

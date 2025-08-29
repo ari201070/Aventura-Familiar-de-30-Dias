@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { useAppContext } from '../App.tsx';
@@ -6,7 +7,7 @@ import InteractiveMap from '../components/InteractiveMap.tsx';
 import BudgetTable from '../components/BudgetTable.tsx';
 import { City, AIPromptContent, AIResponseType, Language } from '../types.ts';
 import { parseMarkdownLinks, parseMarkdownTable } from '../utils/markdownParser.ts';
-import { askGemini } from '../services/apiService.ts';
+import { askGemini, findEventsWithGoogleSearch } from '../services/apiService.ts';
 
 const CityDetailPage: React.FC = () => {
   const { cityId } = useParams<{ cityId: string }>();
@@ -17,12 +18,16 @@ const CityDetailPage: React.FC = () => {
   const [aiResponses, setAiResponses] = useState<Record<string, AIResponseType | undefined>>({});
   const [aiLoadingStates, setAiLoadingStates] = useState<Record<string, boolean>>({});
   const [aiUserInputs, setAiUserInputs] = useState<Record<string, string>>({});
+  const [eventsAiResponse, setEventsAiResponse] = useState<AIResponseType | null>(null);
+  const [isEventsAiLoading, setIsEventsAiLoading] = useState(false);
 
   useEffect(() => {
     // Reset AI states ONLY when city changes, not on language change
     setAiResponses({});
     setAiLoadingStates({});
     setAiUserInputs({});
+    setEventsAiResponse(null);
+    setIsEventsAiLoading(false);
   }, [cityId]);
 
   if (!city) {
@@ -152,6 +157,37 @@ const CityDetailPage: React.FC = () => {
     }
   };
   
+  const handleFindEvents = async () => {
+    setIsEventsAiLoading(true);
+    setEventsAiResponse(null);
+
+    const durationText = t(`${city.id}_dates_duration`);
+    const dates = durationText.split('\n')[0].replace(/- \*\*Estadía\*\*:\s*/, '').trim();
+
+    const prompt = `Find family-friendly events, festivals, or local markets in ${t(city.nameKey)}, Argentina that are happening during these dates: ${dates}. Focus on events that would be interesting for a family with children.`;
+    
+    try {
+        const { text, sources } = await findEventsWithGoogleSearch(prompt, language);
+        setEventsAiResponse({
+            text: text || t('ai_event_finder_error'),
+            sources: sources,
+            lang: language,
+            originalBasePromptKey: '', // Not needed for this specific feature
+            originalUserInput: ''
+        });
+    } catch (error) {
+        setEventsAiResponse({
+            text: t('ai_event_finder_error'),
+            lang: language,
+            originalBasePromptKey: '',
+            originalUserInput: ''
+        });
+    } finally {
+        setIsEventsAiLoading(false);
+    }
+  };
+
+
   const renderSection = (titleKeySuffix: string, contentKey: string, iconClass: string) => {
     const title = t(`section_title_${titleKeySuffix}`);
     let content = t(contentKey);
@@ -160,7 +196,7 @@ const CityDetailPage: React.FC = () => {
 
     let contentNode: React.ReactNode;
 
-    if (titleKeySuffix === 'must_see') {
+    if (content.trim().startsWith('- ')) {
       const listItems = content.split('\n').filter(item => item.trim().startsWith('- '));
       contentNode = (
         <ul className="list-disc list-inside space-y-1">
@@ -265,10 +301,54 @@ const CityDetailPage: React.FC = () => {
           {renderSection('dates_duration', `${city.id}_dates_duration`, 'fa-calendar-alt')}
           {renderSection('must_see', `${city.id}_must_see`, 'fa-star')}
           {renderSection('activities_recommended', city.activitiesKey, 'fa-hiking')}
+
+          {/* AI Event Finder Section */}
+          <section className={detailCardClasses}>
+            <h2 className={detailSectionTitleClasses}>
+              <i className={`fas fa-calendar-star mr-3 text-xl text-indigo-500`}></i>
+              {t('section_title_ai_event_finder')}
+            </h2>
+            <p className={`${detailTextClasses} mb-4`}>
+              {t('ai_event_finder_description', { cityName: t(city.nameKey) })}
+            </p>
+            <button
+              onClick={handleFindEvents}
+              disabled={isEventsAiLoading}
+              className="w-full sm:w-auto bg-cyan-500 hover:bg-cyan-600 text-white font-semibold py-2.5 px-5 rounded-lg shadow-md transition-transform transform hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center mb-3"
+            >
+              {isEventsAiLoading ? (
+                <><i className="fas fa-spinner fa-spin mr-2"></i> {t('generating')}</>
+              ) : (
+                <><i className="fas fa-search-location mr-2"></i> {t('ai_event_finder_button')}</>
+              )}
+            </button>
+            {eventsAiResponse && (
+              <div className="mt-5 p-4 bg-gray-50 rounded-lg shadow-inner border border-gray-200">
+                <div className="whitespace-pre-line text-gray-700">{eventsAiResponse.text}</div>
+                {eventsAiResponse.sources && eventsAiResponse.sources.length > 0 && (
+                  <div className="mt-4 pt-3 border-t border-gray-200">
+                    <h4 className="text-sm font-semibold text-gray-800 mb-2">{t('ai_event_finder_sources_title')}</h4>
+                    <ul className="space-y-1">
+                      {eventsAiResponse.sources.map((source, index) => (
+                        source.web && (
+                          <li key={index} className="text-xs">
+                            <a href={source.web.uri} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all">
+                              <i className="fas fa-link fa-xs mr-1.5"></i>
+                              {source.web.title || source.web.uri}
+                            </a>
+                          </li>
+                        )
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+
           {renderSection('gastronomy_highlight', `${city.id}_gastronomy_highlight`, 'fa-utensils')}
           {renderSection('accommodation_examples', city.accommodationKey, 'fa-bed')}
           {renderSection('coordinates', `${city.id}_coordinates`, 'fa-map-pin')}
-          {renderLinkSection('events_agenda', 'events_agenda_link_text', 'events_agenda_link_url', 'fa-calendar-check')}
           {renderSection('family_tips', `${city.id}_family_tips`, 'fa-users')}
           {renderSection('cultural_tips', `${city.id}_cultural_tips`, 'fa-landmark')}
           

@@ -17,6 +17,48 @@ export const useAppContext = () => {
   return context;
 };
 
+// --- Scroll to Top Button Component ---
+const ScrollToTopButton: React.FC = () => {
+  const { t } = useAppContext();
+  const [isVisible, setIsVisible] = useState(false);
+
+  const toggleVisibility = () => {
+    if (window.pageYOffset > 300) {
+      setIsVisible(true);
+    } else {
+      setIsVisible(false);
+    }
+  };
+
+  useEffect(() => {
+    window.addEventListener('scroll', toggleVisibility);
+    return () => {
+      window.removeEventListener('scroll', toggleVisibility);
+    };
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
+  };
+
+  return (
+    <>
+      {isVisible && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-8 right-8 z-50 bg-white/80 backdrop-blur-md text-indigo-600 p-0 w-14 h-14 rounded-full shadow-lg border-2 border-indigo-600 hover:bg-indigo-100 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300 ease-in-out flex items-center justify-center"
+          aria-label={t('scroll_to_top_label')}
+        >
+          <i className="fas fa-chevron-up text-2xl"></i>
+        </button>
+      )}
+    </>
+  );
+};
+
 const App: React.FC = () => {
   const [language, setLanguage] = useState<Language>(Language.ES);
   const [currency, setCurrency] = useState<Currency>(Currency.ARS);
@@ -50,6 +92,7 @@ const App: React.FC = () => {
             </Routes>
           </main>
           <Footer />
+          <ScrollToTopButton />
         </div>
       </HashRouter>
     </AppContext.Provider>

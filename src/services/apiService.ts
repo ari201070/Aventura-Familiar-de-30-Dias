@@ -1,5 +1,5 @@
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
-import { PolygonRateResponse, Language } from '../types.ts';
+import { PolygonRateResponse, Language, GroundingChunk } from '../types.ts';
 import { POLYGON_API_KEY } from '../constants.ts';
 
 // --- Gemini AI Service ---
@@ -33,17 +33,65 @@ export const askGemini = async (userPrompt: string, currentLanguage: Language): 
   }
 };
 
+export const findEventsWithGoogleSearch = async (
+  prompt: string,
+  currentLanguage: Language
+): Promise<{ text: string; sources: GroundingChunk[] }> => {
+  if (!ai) {
+    const apiKeyMissingMessage = "AI service is unavailable (API key from process.env.API_KEY is missing).";
+    const text = currentLanguage === Language.HE 
+      ? `שירות הבינה המלאכותית אינו זמין (חסר מפתח API ב-process.env.API_KEY).` 
+      : apiKeyMissingMessage;
+    return { text, sources: [] };
+  }
+  try {
+    const languageInstruction = currentLanguage === Language.HE ? "Respond in Hebrew." : "Respond in Spanish.";
+    const fullPrompt = `${prompt}\n\n${languageInstruction}`;
+
+    const response: GenerateContentResponse = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: fullPrompt,
+      config: {
+        tools: [{ googleSearch: {} }],
+      },
+    });
+
+    const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks as GroundingChunk[] || [];
+    
+    return { text: response.text, sources };
+  } catch (error) {
+    console.error("Error calling Gemini API with Google Search:", error);
+    const text = currentLanguage === Language.HE 
+      ? "אירעה שגיאה בחיפוש אירועים." 
+      : "An error occurred while searching for events.";
+    return { text, sources: [] };
+  }
+};
+
+
 // --- Currency Conversion Service (Polygon.io) ---
 const getPolygonExchangeRate = async (fromCurrency: string, toCurrency: string): Promise<number | null> => {
-  if (!POLYGON_API_KEY) {
-    console.warn("Polygon.io API key not found (VITE_POLYGON_API_KEY). Currency conversion will be approximate or disabled.");
-    // Fallback for missing Polygon key
-    if (fromCurrency === 'USD' && toCurrency === 'ARS') return 900; 
-    if (fromCurrency === 'ARS' && toCurrency === 'USD') return 1/900;
-    return null;
-  }
-
   if (fromCurrency === toCurrency) return 1;
+
+  if (!POLYGON_API_KEY) {
+    console.warn("Polygon.io API key not found (VITE_POLYGON_API_KEY). Using approximate fallback conversion rates.");
+    // Fallback for missing Polygon key
+    const usdToArs = 900;
+    const usdToEur = 0.93;
+    const usdToIls = 3.72;
+
+    const rates: { [key: string]: number } = {
+      'USD_ARS': usdToArs, 'ARS_USD': 1 / usdToArs,
+      'USD_EUR': usdToEur, 'EUR_USD': 1 / usdToEur,
+      'USD_ILS': usdToIls, 'ILS_USD': 1 / usdToIls,
+      // Cross rates via USD
+      'ARS_EUR': (1 / usdToArs) * usdToEur, 'EUR_ARS': usdToArs * (1 / usdToEur),
+      'ARS_ILS': (1 / usdToArs) * usdToIls, 'ILS_ARS': usdToArs * (1 / usdToIls),
+      'EUR_ILS': (1 / usdToEur) * usdToIls, 'ILS_EUR': usdToEur * (1 / usdToIls),
+    };
+    const key = `${fromCurrency}_${toCurrency}`;
+    return rates[key] || null;
+  }
 
   const url = `https://api.polygon.io/v2/aggs/ticker/C:${fromCurrency}${toCurrency}/prev?adjusted=true&apiKey=${POLYGON_API_KEY}`;
   try {
@@ -69,7 +117,7 @@ export const convertCurrency = async (amount: number, fromCurrency: string, toCu
   if (rate !== null) {
     return amount * rate;
   } else {
-    // Try bridge conversion via USD if direct rate failed
+    // Try bridge conversion via USD if direct rate failed (this is a secondary fallback)
     if (fromCurrency !== 'USD' && toCurrency !== 'USD') {
       console.log(`Direct rate ${fromCurrency}->${toCurrency} not found. Trying bridge conversion via USD.`);
       const rateFromToUSD = await getPolygonExchangeRate(fromCurrency, 'USD');
