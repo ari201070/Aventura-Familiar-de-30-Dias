@@ -1,0 +1,52 @@
+Solucionando Problemas de Sincronización con GitHub
+El Problema
+Cuando intento sincronizar mis cambios con GitHub a través de una interfaz gráfica (como GitHub Desktop o la integración de VS Code), recibo un error genérico que dice "Something went wrong".
+Esto sucede después de haber realizado cambios significativos en el proyecto, como actualizar el nombre de la aplicación, modificar metadatos y cambiar rutas de archivos. El mensaje de error no es específico y no me permite entender cuál es la causa raíz del problema para poder solucionarlo.
+Análisis y Pasos para la Solución
+Ese error "Something went wrong" es frustrantemente vago, pero es bastante común. Generalmente, no indica un problema con tu código, sino más bien con la conexión o la configuración entre tu entorno local y los servidores de GitHub.
+La mejor manera de obtener un mensaje de error detallado y resolver el problema es usando la línea de comandos (terminal). Te dará la información precisa que necesitas.
+Guía de Solución de Problemas
+Sigue estos pasos en orden para diagnosticar y solucionar el problema.
+1. Reinicia y Verifica tu Conexión
+A veces, la solución más simple es la correcta.
+Cierra y vuelve a abrir tu cliente de GitHub (GitHub Desktop, VS Code, etc.).
+Asegúrate de tener una conexión a internet estable. Una interrupción momentánea en la red puede causar que la sincronización falle.
+2. Usa la Línea de Comandos para un Error Detallado
+Este es el paso más importante. Abre una terminal en la carpeta raíz de tu proyecto y ejecuta los siguientes comandos uno por uno.
+Verifica el estado de tus archivos para asegurarte de que Git está rastreando los cambios que esperas.
+code
+Bash
+git status
+Prepara todos tus cambios para el commit (esto se conoce como "staging"). El punto . significa "todos los archivos en el directorio actual y subdirectorios".
+code
+Bash
+git add .
+Confirma tus cambios con el mensaje que ya habías escrito.
+code
+Bash
+git commit -m "refactor: Update app name and metadata"
+Sube (empuja) tus cambios a GitHub. Este es el comando que probablemente te dará el error específico que necesitamos.
+code
+Bash
+git push
+Al ejecutar git push, la terminal te mostrará un mensaje de error mucho más detallado. Ese mensaje es la clave para resolver el problema.
+Errores Comunes y sus Soluciones
+Basado en el error que obtengas del comando git push, aquí están los escenarios más probables y cómo solucionarlos.
+Error de Autenticación
+Mensaje de error común: Authentication Failed, Permission Denied (publickey) o similar.
+Causa: Tus credenciales de GitHub han expirado, son incorrectas o tu cliente no las está usando correctamente.
+Solución: La forma más fácil es cerrar sesión y volver a iniciarla en tu cliente de GitHub. Si eso no funciona, es posible que necesites generar un nuevo Token de Acceso Personal (PAT) y usarlo para autenticarte.
+Error de "Updates were rejected"
+Mensaje de error común: failed to push some refs o updates were rejected because the remote contains work that you do not have locally.
+Causa: Hay cambios en el repositorio remoto (en GitHub.com) que tú no tienes en tu máquina local. Debes descargar esos cambios antes de poder subir los tuyos.
+Solución: Ejecuta el siguiente comando para descargar los cambios remotos e integrar los tuyos.
+code
+Bash
+git pull --rebase origin main
+(Nota: Reemplaza main por el nombre de tu rama si es diferente, como master).
+Después de que el comando se complete con éxito, intenta hacer git push de nuevo.
+Error de Timeout o Archivos Grandes
+Mensaje de error común: fatal: the remote end hung up unexpectedly o un error de timeout.
+Causa: Estás intentando subir archivos muy grandes o tu conexión es muy lenta.
+Solución: Revisa si accidentalmente has incluido archivos grandes en tu commit (imágenes pesadas, videos, la carpeta node_modules, archivos .env, etc.). Asegúrate de que tu archivo .gitignore esté configurado correctamente para excluir estas carpetas y archivos.
+Si sigues estos pasos y aún no puedes resolverlo, por favor, comparte el mensaje de error exacto que recibes al ejecutar git push en la terminal. Con esa información, podré darte una ayuda mucho más específica.
