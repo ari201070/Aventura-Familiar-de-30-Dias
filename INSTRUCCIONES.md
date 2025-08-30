@@ -153,4 +153,46 @@ firebase deploy
 
 Una vez que el despliegue se complete, la próxima vez que tus familiares abran la aplicación desde el ícono en su pantalla de inicio (o desde la URL), verán automáticamente la versión actualizada con los cambios que realizaste. No necesitan hacer nada adicional para "actualizar" la aplicación en sus dispositivos.
 
-Espero que este resumen te sea útil. ¡Si tienes alguna otra pregunta, no dudes en consultarme!
+Sincronizar el repositorio
+Para asegurarte de que tu copia local del proyecto esté siempre actualizada y para subir tus cambios a GitHub, sigue estos pasos en orden desde tu terminal (Git Bash o similar):
+
+Revisar el estado de los archivos
+Antes de hacer cualquier cosa, usa este comando para ver qué archivos has modificado, eliminado o agregado.
+
+Bash
+
+git status
+Descargar los últimos cambios
+Si alguien más ha hecho cambios en el repositorio en línea, este comando los traerá a tu computadora.
+
+Bash
+
+git pull
+Agregar tus archivos modificados
+Este comando "etiqueta" todos los archivos que has modificado para que estén listos para ser guardados. El punto . significa todos los archivos en la carpeta actual.
+
+Bash
+
+git add .
+Guardar tus cambios
+Este paso crea un "punto de guardado" con una descripción clara de lo que hiciste.
+
+Bash
+
+git commit -m "Tu mensaje de descripción aquí"
+Subir los cambios a GitHub
+Este comando final sube todos los cambios que guardaste al repositorio en línea.
+
+Bash
+
+git push
+Aclaración sobre tus proyectos
+Es normal tener confusión con tantos enlaces, pero aquí te explico la relación entre cada uno de tus proyectos:
+
+https://github.com/ari201070/Aventura-Familiar-de-30-Dias: Este es el repositorio principal y el que debes seguir usando. Es tu "copia maestra" en la nube donde se guarda todo tu código.
+
+https://github.com/ari201070/viajefamiliar30dias.git: Este parece ser otro repositorio que creaste. Si no lo has usado, lo mejor es ignorarlo y centrarte en el principal para evitar confusiones.
+
+https://studio.firebase.google.com/viajefamiliar30dias-18865940: Este es tu proyecto en Firebase Studio, que es la herramienta que conecta tu código de GitHub con la aplicación que se ve en línea. No es un repositorio de código, sino una plataforma para gestionar tu proyecto.
+
+https://viajes-argentina-en-30-dias.web.app/#/: Esta es la aplicación final que los usuarios ven. Cuando haces firebase deploy, Firebase toma el código del proyecto que está enlazado (viajefamiliar30dias-18865940) y lo publica en esta dirección.
